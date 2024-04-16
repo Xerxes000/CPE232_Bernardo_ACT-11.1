@@ -1,0 +1,75 @@
+---
+- hosts: all
+  become: true
+  pre_tasks:
+
+  - name: Install Python 3 and pip3
+    become: yes
+    apt:
+      name:
+        - python3
+        - python3-pip
+      state: present
+
+  - name: install docker on Ubuntu
+    shell:
+      sudo apt-get install docker.io -y
+    when: ansible_distribution == "Ubuntu"
+
+  - name: install docker on CentOS
+    yum:
+      name: docker
+      state: present
+    when: ansible_distribution == "CentOS"
+
+  - name: install docker sdk
+    shell:
+      pip3 install docker-py
+
+  - name: start / enable docker service
+    service:
+      name: docker
+      state: started
+      enabled: true
+
+  - name: add docker to user group
+    shell:
+      usermod -aG docker christian
+
+  - name: restart docker service
+    service:
+      name: docker
+      state: restarted
+      enabled: true
+
+  - name: create dockerfile directory
+    file:
+      path: /root/demo-dockerfile
+      state: directory
+      owner: root
+      group: root
+      mode: '0755'
+
+  - name: copy dockerfile for Ubuntu
+    copy:
+      src: dockerfile1
+      dest: /root/demo-dockerfile/dockerfile
+      owner: root
+      group: root
+      mode: '0755'
+    when: ansible_distribution == "Ubuntu"
+
+  - name: copy dockerfile for CentOS
+    copy:
+      src: dockerfile2
+      dest: /root/demo-dockerfile/dockerfile
+      owner: root
+      group: root
+      mode: '0755'
+    when: ansible_distribution == "CentOS"
+
+  - name: Remove existing container with conflicting name
+    shell: docker rm -f docker_container5
+    ignore_errors: yes  # Ignore errors if the container does not exist or is not running
+    when: ansible_distribution == "Ubuntu"
+
